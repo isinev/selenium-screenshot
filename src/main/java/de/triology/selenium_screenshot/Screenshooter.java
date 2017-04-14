@@ -49,10 +49,16 @@ public class Screenshooter {
         this.imageMagickPath = imageMagickPath;
     }
 
+    private int pixelThreshold = 0;
+
+    public void setPixelThreshold(int pixelThreshold) {
+        this.pixelThreshold = pixelThreshold;
+    }
+
     /*
-    * Create new name of file if file name already exists.
-    *
-     */
+        * Create new name of file if file name already exists.
+        *
+         */
     private String createNewNameInFolder(String old, File folder){
         String newStr = "";
         File[] children = folder.listFiles();
@@ -142,7 +148,10 @@ public class Screenshooter {
     public int compareImages(String directory, String screenshot, String screenshotCompare){
         int result = -1; // -1 is returned unless compare is called successfully
 
+        String comparisonResultName = "compare.png";
+
         if(!screenshot.endsWith(".png")){
+            comparisonResultName = screenshot + "_compare.png";
             screenshot += ".png";
         }
         if(!screenshotCompare.endsWith(".png")){
@@ -152,6 +161,7 @@ public class Screenshooter {
         File dir = new File(directory);
         File scShot = new File(dir, screenshot);
         File scShotCompare = new File(dir, screenshotCompare);
+        File comparisonOutput = null;
 
         if(!dir.exists()){
             System.out.println("Compare: Directory " + directory + " is not valid.");
@@ -192,14 +202,16 @@ public class Screenshooter {
             };
             IMOperation op = new IMOperation();
 
-            op.addRawArgs("-metric", "AE");
+            op.addRawArgs("-metric", "AE", "-fuzz", "5%");
             op.addImage(scShot.getAbsolutePath());
             op.addImage(scShotCompare.getAbsolutePath());
 
             ArrayListErrorConsumer errorConsumer = new ArrayListErrorConsumer();
             com_cmd.setErrorConsumer(errorConsumer);
 
-            File comparisonOutput = new File(dir, "output.png");
+            File diffDir = new File(dir, "diff");
+            diffDir.mkdirs();
+            comparisonOutput = new File(diffDir, comparisonResultName);
             op.addImage(comparisonOutput.getAbsolutePath());
 
             try {
@@ -231,6 +243,9 @@ public class Screenshooter {
                     System.out.println("Differences between images found.");
                 }
             }
+        }
+        if (comparisonOutput != null && result >= 0 && result <= pixelThreshold) {
+            comparisonOutput.delete();
         }
         return result;
     }
